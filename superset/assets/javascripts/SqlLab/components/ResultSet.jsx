@@ -46,6 +46,10 @@ class ResultSet extends React.PureComponent {
         this.clearQueryResults(nextProps.query)
       );
     }
+    if (nextProps.query.resultsKey
+      && nextProps.query.resultsKey !== this.props.query.resultsKey) {
+      this.fetchResults(nextProps.query);
+    }
   }
   getControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
@@ -197,16 +201,6 @@ class ResultSet extends React.PureComponent {
             </div>
           </div>
         );
-      } else if (query.resultsKey) {
-        return (
-          <div>
-            <Alert bsStyle="warning">This query was run asynchronously &nbsp;
-              <Button bsSize="sm" onClick={this.fetchResults.bind(this, query)}>
-                Fetch results
-              </Button>
-            </Alert>
-          </div>
-        );
       }
     }
     if (query.cached) {
@@ -220,7 +214,7 @@ class ResultSet extends React.PureComponent {
         </Button>
       );
     }
-    return (<Alert bsStyle="warning">The query returned no data</Alert>);
+    return <Alert bsStyle="warning">The query returned no data</Alert>;
   }
 }
 ResultSet.propTypes = propTypes;

@@ -7,15 +7,15 @@ import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
-import { autoQueryFields } from '../stores/store';
-import { getParamObject } from '../exploreUtils';
-
-const $ = require('jquery');
+import { autoQueryFields } from '../stores/fields';
+import { getExploreUrl } from '../exploreUtils';
 
 const propTypes = {
   form_data: React.PropTypes.object.isRequired,
   actions: React.PropTypes.object.isRequired,
   datasource_type: React.PropTypes.string.isRequired,
+  chartStatus: React.PropTypes.string.isRequired,
+  fields: React.PropTypes.object.isRequired,
 };
 
 
@@ -30,6 +30,7 @@ class ExploreViewContainer extends React.Component {
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize.bind(this));
+    this.runQuery();
   }
 
   componentWillReceiveProps(nextProps) {
@@ -38,7 +39,7 @@ class ExploreViewContainer extends React.Component {
       && autoQueryFields.indexOf(field) !== -1)
     );
     if (refreshChart) {
-      this.onQuery(nextProps.form_data);
+      this.onQuery();
     }
   }
 
@@ -46,12 +47,13 @@ class ExploreViewContainer extends React.Component {
     window.removeEventListener('resize', this.handleResize.bind(this));
   }
 
-  onQuery(form_data) {
-    const data = getParamObject(form_data, this.props.datasource_type);
-    this.queryFormData(data);
-
-    const params = $.param(data, true);
-    this.updateUrl(params);
+  onQuery() {
+    this.runQuery();
+    history.pushState(
+      {},
+      document.title,
+      getExploreUrl(this.props.form_data, this.props.datasource_type)
+    );
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
     this.props.actions.removeChartAlert();
@@ -62,23 +64,42 @@ class ExploreViewContainer extends React.Component {
     return `${window.innerHeight - navHeight}px`;
   }
 
-  updateUrl(params) {
-    const baseUrl =
-      `/superset/explore/${this.props.datasource_type}/${this.props.form_data.datasource}/`;
-    const newEndpoint = `${baseUrl}?${params}`;
-    history.pushState({}, document.title, newEndpoint);
+
+  runQuery() {
+    this.props.actions.runQuery(this.props.form_data, this.props.datasource_type);
   }
 
-  queryFormData(data) {
-    this.props.actions.updateExplore(
-      this.props.datasource_type, this.props.form_data.datasource, data);
-  }
   handleResize() {
-    this.setState({ height: this.getHeight() });
+    clearTimeout(this.resizeTimer);
+    this.resizeTimer = setTimeout(() => {
+      this.setState({ height: this.getHeight() });
+    }, 250);
   }
 
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
+  }
+  renderErrorMessage() {
+    // Returns an error message as a node if any errors are in the store
+    const errors = [];
+    for (const fieldName in this.props.fields) {
+      const field = this.props.fields[fieldName];
+      if (field.validationErrors && field.validationErrors.length > 0) {
+        errors.push(
+          <div key={fieldName}>
+            <strong>{`[ ${field.label} ] `}</strong>
+            {field.validationErrors.join('. ')}
+          </div>
+        );
+      }
+    }
+    let errorMessage;
+    if (errors.length > 0) {
+      errorMessage = (
+        <div style={{ textAlign: 'left' }}>{errors}</div>
+      );
+    }
+    return errorMessage;
   }
 
   render() {
@@ -103,22 +124,23 @@ class ExploreViewContainer extends React.Component {
           <div className="col-sm-4">
             <QueryAndSaveBtns
               canAdd="True"
-              onQuery={this.onQuery.bind(this, this.props.form_data)}
+              onQuery={this.onQuery.bind(this)}
               onSave={this.toggleModal.bind(this)}
+              disabled={this.props.chartStatus === 'loading'}
+              errorMessage={this.renderErrorMessage()}
             />
-            <br /><br />
+            <br />
             <ControlPanelsContainer
               actions={this.props.actions}
               form_data={this.props.form_data}
               datasource_type={this.props.datasource_type}
-              onQuery={this.onQuery.bind(this, this.props.form_data)}
+              onQuery={this.onQuery.bind(this)}
             />
           </div>
           <div className="col-sm-8">
             <ChartContainer
               actions={this.props.actions}
               height={this.state.height}
-              actions={this.props.actions}
             />
           </div>
         </div>
@@ -131,7 +153,9 @@ ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
   return {
+    chartStatus: state.chartStatus,
     datasource_type: state.datasource_type,
+    fields: state.fields,
     form_data: state.viz.form_data,
   };
 }

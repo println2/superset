@@ -27,6 +27,14 @@ TIMESTAMP_CHOICES = [
      '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'),
     ("%H:%M:%S", '"%H:%M:%S" | 01:32:10'),
 ]
+AXIS_FORMAT_CHOICES = [
+    ('.3s', '".3s" | 12.3k'),
+    ('.3%', '".3%" | 1234543.210%'),
+    ('.4r', '".4r" | 12350'),
+    ('.3f', '".3f" | 12345.432'),
+    ('+,', '"+," | +12,345.4321'),
+    ('$,.2f', '"$,.2f" | $12,345.43'),
+]
 D3_FORMAT_DOCS = _(
     "D3 format syntax "
     "https://github.com/d3/d3-format")
@@ -161,6 +169,12 @@ class FormFactory(object):
                 "choices": datasource.metrics_combo,
                 "default": default_metric,
                 "description": _("Choose the metric")
+            }),
+            'metric_2': (SelectField, {
+                "label": _("Right Axis Metric"),
+                "choices": datasource.metrics_combo,
+                "default": default_metric,
+                "description": _("Choose the metric for second y axis")
             }),
             'stacked_style': (SelectField, {
                 "label": _("Chart Style"),
@@ -550,7 +564,7 @@ class FormFactory(object):
             }),
             'row_limit': (FreeFormSelectField, {
                 "label": _('Row limit'),
-                "default": config.get("ROW_LIMIT"),
+                "default": config.get("VIZ_ROW_LIMIT"),
                 "choices": self.choicify(
                     [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000])
             }),
@@ -679,14 +693,13 @@ class FormFactory(object):
             'y_axis_format': (FreeFormSelectField, {
                 "label": _("Y axis format"),
                 "default": '.3s',
-                "choices": [
-                    ('.3s', '".3s" | 12.3k'),
-                    ('.3%', '".3%" | 1234543.210%'),
-                    ('.4r', '".4r" | 12350'),
-                    ('.3f', '".3f" | 12345.432'),
-                    ('+,', '"+," | +12,345.4321'),
-                    ('$,.2f', '"$,.2f" | $12,345.43'),
-                ],
+                "choices": AXIS_FORMAT_CHOICES,
+                "description": D3_FORMAT_DOCS,
+            }),
+            'y_axis_2_format': (FreeFormSelectField, {
+                "label": _("Right axis format"),
+                "default": '.3s',
+                "choices": AXIS_FORMAT_CHOICES,
                 "description": D3_FORMAT_DOCS,
             }),
             'markup_type': (SelectField, {
@@ -986,6 +999,36 @@ class FormFactory(object):
                     ("rgb(34, 139, 34)", "Forest Green"),
                 ],
                 "description": _("The color for points and clusters in RGB")
+            }),
+            'ranges': (TextField, {
+                "label": _("Ranges"),
+                "default": "",
+                "description": _("Ranges to highlight with shading")
+            }),
+            'range_labels': (TextField, {
+                "label": _("Range labels"),
+                "default": "",
+                "description": _("Labels for the ranges")
+            }),
+            'markers': (TextField, {
+                "label": _("Markers"),
+                "default": "",
+                "description": _("List of values to mark with triangles")
+            }),
+            'marker_labels': (TextField, {
+                "label": _("Marker labels"),
+                "default": "",
+                "description": _("Labels for the markers")
+            }),
+            'marker_lines': (TextField, {
+                "label": _("Marker lines"),
+                "default": "",
+                "description": _("List of values to mark with lines")
+            }),
+            'marker_line_labels': (TextField, {
+                "label": _("Marker line labels"),
+                "default": "",
+                "description": _("Labels for the marker lines")
             }),
         }
 
